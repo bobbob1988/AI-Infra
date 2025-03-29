@@ -1,0 +1,8 @@
+kfp==1.8.14
+sagemaker==2.190.0
+tensorflow==2.4.1
+boto3==1.26.137
+pyspark==3.3.0
+numpy==1.19.5
+pandas==1.2.4
+scikit-learn==0.24.2 
