@@ -22,7 +22,7 @@ resource "aws_eks_cluster" "kubeflow" {
   version  = "1.24"
 
   vpc_config {
-    subnet_ids = var.subnet_ids
+    subnet_ids = local.subnet_ids
   }
 
   depends_on = [aws_iam_role_policy_attachment.eks_cluster_policy]
@@ -33,7 +33,7 @@ resource "aws_eks_node_group" "kubeflow" {
   cluster_name    = aws_eks_cluster.kubeflow.name
   node_group_name = "kubeflow-node-group"
   node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = var.subnet_ids
+  subnet_ids      = local.subnet_ids
 
   scaling_config {
     desired_size = 2
