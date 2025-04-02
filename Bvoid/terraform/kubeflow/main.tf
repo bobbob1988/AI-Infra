@@ -12,14 +12,15 @@ terraform {
 }
 
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = "aiinfra"
 }
 
 # EKS Cluster
 resource "aws_eks_cluster" "kubeflow" {
   name     = "kubeflow-cluster"
   role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.24"
+  version  = "1.28"  # Upgrading one minor version at a time
 
   vpc_config {
     subnet_ids = local.subnet_ids
@@ -51,15 +52,15 @@ resource "aws_eks_node_group" "kubeflow" {
 }
 
 # S3 Bucket for Kubeflow Artifacts
-resource "aws_s3_bucket" "kubeflow_artifacts" {
-  bucket = "kubeflow-artifacts-${random_string.bucket_suffix.result}"
-}
+# resource "aws_s3_bucket" "kubeflow_artifacts" {
+#   bucket = "kubeflow-artifacts-${random_string.bucket_suffix.result}"
+# }
 
-resource "random_string" "bucket_suffix" {
-  length  = 8
-  special = false
-  upper   = false
-}
+# resource "random_string" "bucket_suffix" {
+#   length  = 8
+#   special = false
+#   upper   = false
+# }
 
 # IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster" {
@@ -98,57 +99,57 @@ resource "aws_iam_role" "eks_nodes" {
 }
 
 # IAM Policy for S3 and SageMaker Access
-resource "aws_iam_role_policy" "eks_s3_sagemaker_policy" {
-  name = "eks_s3_sagemaker_policy"
-  role = aws_iam_role.eks_nodes.id
+# resource "aws_iam_role_policy" "eks_s3_sagemaker_policy" {
+#   name = "eks_s3_sagemaker_policy"
+#   role = aws_iam_role.eks_nodes.id
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:ListBucket",
-          "sagemaker:CreateExperiment",
-          "sagemaker:CreateTrial",
-          "sagemaker:CreateTrialComponent",
-          "sagemaker:DeleteExperiment",
-          "sagemaker:DeleteTrial",
-          "sagemaker:DeleteTrialComponent",
-          "sagemaker:DescribeExperiment",
-          "sagemaker:DescribeTrial",
-          "sagemaker:DescribeTrialComponent",
-          "sagemaker:ListExperiments",
-          "sagemaker:ListTrials",
-          "sagemaker:ListTrialComponents",
-          "sagemaker:UpdateExperiment",
-          "sagemaker:UpdateTrial",
-          "sagemaker:UpdateTrialComponent",
-          "sagemaker:CreateModel",
-          "sagemaker:CreateEndpoint",
-          "sagemaker:CreateEndpointConfig",
-          "sagemaker:CreateTrainingJob",
-          "sagemaker:CreateHyperParameterTuningJob"
-        ]
-        Resource = [
-          aws_s3_bucket.kubeflow_artifacts.arn,
-          "${aws_s3_bucket.kubeflow_artifacts.arn}/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:experiment/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:trial/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:trial-component/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:model/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:endpoint/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:endpoint-config/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:training-job/*",
-          "arn:aws:sagemaker:${var.aws_region}:*:hyper-parameter-tuning-job/*"
-        ]
-      }
-    ]
-  })
-}
+#   policy = jsonencode({
+#     Version = "2012-10-17"
+#     Statement = [
+#       {
+#         Effect = "Allow"
+#         Action = [
+#           "s3:GetObject",
+#           "s3:PutObject",
+#           "s3:DeleteObject",
+#           "s3:ListBucket",
+#           "sagemaker:CreateExperiment",
+#           "sagemaker:CreateTrial",
+#           "sagemaker:CreateTrialComponent",
+#           "sagemaker:DeleteExperiment",
+#           "sagemaker:DeleteTrial",
+#           "sagemaker:DeleteTrialComponent",
+#           "sagemaker:DescribeExperiment",
+#           "sagemaker:DescribeTrial",
+#           "sagemaker:DescribeTrialComponent",
+#           "sagemaker:ListExperiments",
+#           "sagemaker:ListTrials",
+#           "sagemaker:ListTrialComponents",
+#           "sagemaker:UpdateExperiment",
+#           "sagemaker:UpdateTrial",
+#           "sagemaker:UpdateTrialComponent",
+#           "sagemaker:CreateModel",
+#           "sagemaker:CreateEndpoint",
+#           "sagemaker:CreateEndpointConfig",
+#           "sagemaker:CreateTrainingJob",
+#           "sagemaker:CreateHyperParameterTuningJob"
+#         ]
+#         Resource = [
+#           aws_s3_bucket.kubeflow_artifacts.arn,
+#           "${aws_s3_bucket.kubeflow_artifacts.arn}/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:experiment/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:trial/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:trial-component/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:model/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:endpoint/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:endpoint-config/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:training-job/*",
+#           "arn:aws:sagemaker:${var.aws_region}:*:hyper-parameter-tuning-job/*"
+#         ]
+#       }
+#     ]
+#   })
+# }
 
 # IAM Policy Attachments
 resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
@@ -182,8 +183,4 @@ output "cluster_security_group_id" {
 
 output "cluster_name" {
   value = aws_eks_cluster.kubeflow.name
-}
-
-output "kubeflow_artifacts_bucket" {
-  value = aws_s3_bucket.kubeflow_artifacts.id
 } 
